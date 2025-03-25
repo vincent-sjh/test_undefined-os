@@ -3,7 +3,7 @@
 
 ## 训练邀请：OS kernel设计与实现
 - [点击：创建自己的内核赛道训练repo](https://classroom.github.com/a/END-WGn8)
-- [点击：查看在线榜单](https://oscontent25.github.io/oscomp-grading)
+- [点击：查看在线榜单](http://learningos.cn/oscomptest-grading)
 
 本测试涵盖riscv64、loongarch64、aarch64、x86_64四种架构测例，测例内容基本一致。
 
@@ -24,7 +24,7 @@
 ## 在线测试
 github的CI对内核进行测试的执行时间设置为 `300` 秒（`5`分钟），超时后程序会被终止，不再继续执行，所得分数为超时前完成的部分的分数。
 github的CI执行完毕后，你可以在相应仓库的action中查看详细结果。
-github的CI测试可能会有脚本执行的权限问题，如果添加`chmod +x`后没有解决，可以次啊用`git update-index --chmod=+x build.cmd`。
+github的CI测试可能会有脚本执行的权限问题，如果添加`chmod +x`后没有解决，可以尝试使用`git update-index --chmod=+x build.cmd`。
 
 ## 注意事项
 - `QEMU` 版本为 `9.2.1`
