@@ -1,0 +1,129 @@
+name: Autograding Tests
+on: 
+  push:
+    branches:
+      - main
+    # paths-ignore:
+    #   - '.github/**'
+env:
+  IMG_URL_riscv64: https://github.com/Azure-stars/testsuits-for-oskernel/releases/download/v0.1/sdcard-riscv64.img.gz # 镜像url
+  IMG_URL_loongarch64: https://github.com/Azure-stars/testsuits-for-oskernel/releases/download/v0.1/sdcard-loongarch64.img.gz # 镜像url
+  IMG_URL_aarch64: https://github.com/Azure-stars/testsuits-for-oskernel/releases/download/v0.1/sdcard-aarch64.img.gz # 镜像url
+  IMG_URL_x86_64: https://github.com/Azure-stars/testsuits-for-oskernel/releases/download/v0.1/sdcard-x86_64.img.gz # 镜像url
+  TIMEOUT: 300 # 超时时间
+  SCRIPT_REPO: https://github.com/oscontent25/EvaluationScript # 脚本仓库
+ 
+jobs:  
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    env:
+      qemu-version: 9.2.1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2025-01-18
+          components: rust-src, llvm-tools
+          targets: x86_64-unknown-none, riscv64gc-unknown-none-elf, aarch64-unknown-none, aarch64-unknown-none-softfloat, loongarch64-unknown-none
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-binutils
+      - uses: ./.github/workflows/setup-musl
+        with:
+          arch: riscv64
+      - uses: ./.github/workflows/setup-musl
+        with:
+          arch: loongarch64
+      - uses: ./.github/workflows/setup-musl
+        with:
+          arch: aarch64
+      - uses: ./.github/workflows/setup-musl
+        with:
+          arch: x86_64
+      - uses: ./.github/workflows/setup-qemu
+        with:
+          qemu-version: ${{ env.qemu-version }}
+      - name: Build python environment
+        run: sudo apt-get install -y python3 python3-pip
+      - name: build os.bin
+        run: |
+          touch riscv64_output.txt
+          touch loongarch64_output.txt
+          touch aarch64_output.txt
+          touch x86_64_output.txt
+          make oscomp_run ARCH=riscv64 BLK=y NET=y FEATURES=fp_simd,lwext4_rs > riscv64_output.txt || true
+          make clean
+          make oscomp_run ARCH=loongarch64 BLK=y NET=y FEATURES=fp_simd,lwext4_rs > loongarch64_output.txt || true
+          make clean
+          make oscomp_run ARCH=aarch64 BLK=y NET=y FEATURES=fp_simd,lwext4_rs > aarch64_output.txt || true
+          make clean
+          make oscomp_run ARCH=x86_64 BLK=y NET=y FEATURES=fp_simd,lwext4_rs ACCEL=n > x86_64_output.txt || true
+
+      - name: Download EvaluationScript
+        run: |
+            git clone ${{ env.SCRIPT_REPO }} .github/classroom
+
+      - name: riscvglibc-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingriscvglibc
+        with:
+          outputfile: riscv64_output.txt
+          scriptPath: .github/classroom/glibc
+      - name: riscvmusl-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingriscvmusl
+        with:
+          outputfile: riscv64_output.txt
+          scriptPath: .github/classroom/musl
+      - name: loongarchglibc-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingloongarchglibc
+        with:
+          outputfile: loongarch64_output.txt
+          scriptPath: .github/classroom/glibc
+      - name: loongarchmusl-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingloongarchmusl
+        with:
+          outputfile: loongarch64_output.txt
+          scriptPath: .github/classroom/musl
+      - name: aarchglibc-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingaarchglibc
+        with:
+          outputfile: aarch64_output.txt
+          scriptPath: .github/classroom/glibc
+      - name: aarchmusl-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingaarchmusl
+        with:
+          outputfile: aarch64_output.txt
+          scriptPath: .github/classroom/musl
+      - name: x86glibc-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingx86glibc
+        with:
+          outputfile: x86_64_output.txt
+          scriptPath: .github/classroom/glibc
+      - name: x86musl-test
+        uses: oscontent25/os-autograding@master
+        id: autogradingx86musl
+        with:
+          outputfile: x86_64_output.txt
+          scriptPath: .github/classroom/musl
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          AUTOGRADINGRISCVGLIBC_RESULTS: "${{steps.autogradingriscvglibc.outputs.result}}"
+          AUTOGRADINGLOONGARCHGLIBC_RESULTS: "${{steps.autogradingloongarchglibc.outputs.result}}"
+          AUTOGRADINGAARCHGLIBC_RESULTS: "${{steps.autogradingaarchglibc.outputs.result}}"
+          AUTOGRADINGX86GLIBC_RESULTS: "${{steps.autogradingx86glibc.outputs.result}}"
+          AUTOGRADINGRISCVMUSL_RESULTS: "${{steps.autogradingriscvmusl.outputs.result}}"
+          AUTOGRADINGLOONGARCHMUSL_RESULTS: "${{steps.autogradingloongarchmusl.outputs.result}}"
+          AUTOGRADINGAARCHMUSL_RESULTS: "${{steps.autogradingaarchmusl.outputs.result}}"
+          AUTOGRADINGX86MUSL_RESULTS: "${{steps.autogradingx86musl.outputs.result}}"
+        with:
+          runners: autogradingriscvglibc,autogradingloongarchglibc,autogradingaarchglibc,autogradingx86glibc,autogradingriscvmusl,autogradingloongarchmusl,autogradingaarchmusl,autogradingx86musl
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+        
