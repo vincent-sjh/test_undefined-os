@@ -7,12 +7,11 @@
 #![feature(doc_auto_cfg)]
 #![allow(clippy::missing_safety_doc)]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
 #[macro_use]
 extern crate axlog;
 extern crate axruntime;
-
-#[cfg(feature = "alloc")]
-extern crate alloc;
 
 #[macro_use]
 mod utils;
@@ -31,7 +30,7 @@ pub mod config {
 #[allow(dead_code, non_snake_case, non_camel_case_types, non_upper_case_globals, clippy::upper_case_acronyms, missing_docs)]
 pub mod ctypes;
 
-pub use imp::io::{sys_read, sys_write, sys_writev};
+pub use imp::io::*;
 #[cfg(feature = "fs")]
 pub use imp::path_link::{AT_FDCWD, FilePath, HARDLINK_MANAGER, handle_file_path};
 pub use imp::resources::{sys_getrlimit, sys_setrlimit};

@@ -120,12 +120,14 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
         #[cfg(target_arch = "x86_64")]
         Sysno::fork => sys_fork(),
         Sysno::gettid => sys_gettid(),
+        Sysno::lseek => sys_lseek(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
         Sysno::prlimit64 => sys_prlimit64(
             tf.arg0() as _,
             tf.arg1() as _,
             tf.arg2().into(),
             tf.arg3().into(),
         ),
+        Sysno::readv => sys_readv(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::rt_sigtimedwait => sys_rt_sigtimedwait(
             tf.arg0() as _,
             tf.arg1().into(),

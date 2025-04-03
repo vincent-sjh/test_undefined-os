@@ -8,6 +8,7 @@ extern crate axlog;
 
 mod syscall;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 use starry_core::entry::run_user_app;
 
@@ -22,7 +23,20 @@ fn main() {
         let args = testcase
             .split_ascii_whitespace()
             .map(Into::into)
-            .collect::<Vec<_>>();
+            .collect::<Vec<String>>();
+
+        if args.is_empty() {
+            continue;
+        }
+
+        if args[0].starts_with('#') {
+            info!(
+                "[task manager] Skipping testcase: {} with args: {:?}",
+                &args[0][1..],
+                args
+            );
+            continue;
+        }
 
         info!(
             "[task manager] Running user task: {} with args: {:?}",

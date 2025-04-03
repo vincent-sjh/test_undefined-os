@@ -177,6 +177,7 @@
 /musl/runtest.exe -w entry-dynamic.exe string_strstr
 /musl/runtest.exe -w entry-dynamic.exe strptime
 /musl/runtest.exe -w entry-dynamic.exe strtod
+/musl/runtest.exe -w entry-static.exe ftello_unflushed_append
 /musl/runtest.exe -w entry-dynamic.exe strtod_simple
 /musl/runtest.exe -w entry-dynamic.exe strtof
 /musl/runtest.exe -w entry-dynamic.exe strtol
