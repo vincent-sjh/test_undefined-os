@@ -54,7 +54,6 @@ pub fn sys_write(fd: c_int, buf: *const c_void, count: usize) -> ctypes::ssize_t
     debug!("sys_write <= {} {:#x} {}", fd, buf as usize, count);
     syscall_body!(sys_write, write_impl(fd, buf, count))
 }
-
 /// Write a vector.
 pub unsafe fn sys_writev(fd: c_int, iov: *const ctypes::iovec, iocnt: c_int) -> ctypes::ssize_t {
     debug!("sys_writev <= fd: {}", fd);

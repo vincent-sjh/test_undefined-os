@@ -8,4 +8,4 @@
 
 #![no_std]
 
-axconfig_gen_macros::include_configs!(env!("AX_CONFIG_PATH"));
+axconfig_gen_macros::include_configs!("../../../.axconfig.toml");
