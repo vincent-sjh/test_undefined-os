@@ -303,12 +303,3 @@ pub fn sys_unlink(_path: UserConstPtr<c_char>) -> LinuxResult<isize> {
     Ok(0)
 }
 
-pub fn sys_utimensat(
-    dir_fd: i32,
-    path: UserConstPtr<c_char>,
-    times: usize,
-    _flags: i32,
-) -> LinuxResult<isize> {
-    warn!("[sys_unlink] not implemented yet");
-    Ok(0)
-}
