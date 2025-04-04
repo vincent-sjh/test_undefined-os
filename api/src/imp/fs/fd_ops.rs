@@ -1,12 +1,19 @@
 use core::ffi::c_int;
 
 use arceos_posix_api as api;
-use axerrno::LinuxResult;
+use arceos_posix_api::FD_TABLE;
+use axerrno::{LinuxError, LinuxResult};
+use axtask::{current, TaskExtRef};
 
 pub fn sys_dup(old_fd: c_int) -> LinuxResult<isize> {
+    let curr = current();
+    let task = curr.task_ext();
+    if FD_TABLE.read().count()  >= task.get_rlimit_nofile().rlim_cur as usize{
+        return Err(LinuxError::EMFILE);
+    }
+
     Ok(api::sys_dup(old_fd) as _)
 }
-
 pub fn sys_dup3(old_fd: c_int, new_fd: c_int) -> LinuxResult<isize> {
     Ok(api::sys_dup2(old_fd, new_fd) as _)
 }
