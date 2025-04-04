@@ -9,6 +9,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
+use core::cell::Cell;
 use arceos_posix_api::FD_TABLE;
 use axerrno::{AxError, AxResult};
 use axfs::{CURRENT_DIR, CURRENT_DIR_PATH};
@@ -27,6 +28,14 @@ use crate::{
     ctypes::{CloneFlags, TimeStat, WaitStatus},
     mm::copy_from_kernel,
 };
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(C)]
+pub struct Rlimit{
+    pub rlim_cur: u32,
+    pub rlim_max: u32,
+}
+
+
 
 /// Task extended data for the monolithic kernel.
 pub struct TaskExt {
@@ -54,6 +63,22 @@ pub struct TaskExt {
     pub heap_bottom: AtomicU64,
     /// The user heap top
     pub heap_top: AtomicU64,
+    // The resource limit
+    // RLIMIT_AS：进程的最大虚拟内存大小（字节）。
+    pub rlimit_as: Rlimit,
+    // RLIMIT_CORE：核心转储文件（core dump）的最大大小。
+    pub rlimit_asc: Rlimit,
+    // RLIMIT_CPU：CPU 时间限制（秒）。
+    pub rlimit_cpu: Rlimit,
+    // RLIMIT_DATA：数据段的最大大小。
+    pub rlimit_data: Rlimit,
+    // RLIMIT_FSIZE：创建文件的最大大小。
+    pub rlimit_fsize: Rlimit,
+    // RLIMIT_NOFILE：打开文件描述符的最大数量。
+    pub rlimit_nofile: Cell<Rlimit>,
+    // RLIMIT_STACK：栈的最大大小。
+    pub rlimit_stack: Rlimit,
+
 }
 
 impl TaskExt {
@@ -74,6 +99,13 @@ impl TaskExt {
             time: TimeStat::new().into(),
             heap_bottom: AtomicU64::new(heap_bottom),
             heap_top: AtomicU64::new(heap_bottom),
+            rlimit_as: Rlimit::default(),
+            rlimit_asc: Rlimit::default(),
+            rlimit_cpu: Rlimit::default(),
+            rlimit_data: Rlimit::default(),
+            rlimit_fsize: Rlimit::default(),
+            rlimit_stack: Rlimit::default(),
+            rlimit_nofile: Cell::new(Rlimit::default()),
         }
     }
 
@@ -155,11 +187,19 @@ impl TaskExt {
     pub fn get_parent(&self) -> u64 {
         self.parent_id.load(Ordering::Acquire)
     }
+    
 
     pub fn set_parent(&self, parent_id: u64) {
         self.parent_id.store(parent_id, Ordering::Release);
     }
+    pub fn set_rlimit_nofile(&self, new_value: Rlimit) {
+        self.rlimit_nofile.set(new_value);
+    }
 
+    pub fn get_rlimit_nofile(&self) -> Rlimit {
+        self.rlimit_nofile.get()
+    }
+    
     fn ns_init_new(&self) {
         FD_TABLE
             .deref_from(&self.ns)

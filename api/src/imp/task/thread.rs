@@ -1,6 +1,7 @@
 use core::{ffi::c_char, ptr};
 
 use alloc::vec::Vec;
+use arceos_posix_api::ctypes::RLIMIT_NOFILE;
 use axerrno::{LinuxError, LinuxResult};
 use axtask::{TaskExtRef, current, yield_now};
 use macro_rules_attribute::apply;
@@ -9,7 +10,7 @@ use starry_core::{
     ctypes::{WaitFlags, WaitStatus},
     task::{exec, wait_pid},
 };
-
+use starry_core::task::Rlimit;
 use crate::{
     ptr::{PtrWrapper, UserConstPtr, UserPtr},
     syscall_instrument,
@@ -158,12 +159,32 @@ pub fn sys_fork() -> LinuxResult<isize> {
 // TODO: [stub] The method signature is not correct yet
 #[apply(syscall_instrument)]
 pub fn sys_prlimit64(
-    _pid: i32,
-    _resource: i32,
-    _new_limit: UserConstPtr<usize>,
-    _old_limit: UserPtr<usize>,
+    pid: i32,
+    resource: u32,
+    new_limit: UserConstPtr<Rlimit>,
+    old_limit: UserPtr<Rlimit>,
 ) -> LinuxResult<isize> {
-    warn!("[sys_prlimit64] Not implemented yet");
+    if pid != 0 {
+        return Err(LinuxError::ESRCH);
+    }
+    if resource != RLIMIT_NOFILE {
+        return Err(LinuxError::EINVAL);
+    }
+    let curr = current();
+    let task = curr.task_ext();
+    let old_num:Rlimit = task.get_rlimit_nofile();
+    let new_limit = new_limit.nullable(UserConstPtr::get)?;
+    if let Some(new_limit) = new_limit {
+        unsafe { task.set_rlimit_nofile(*new_limit); }
+    }
+    
+    let old_limit = old_limit.nullable(UserPtr::get)?;
+    if let Some(old_limit) = old_limit {
+        unsafe {
+            *old_limit = old_num;
+        }
+    }
+
     Ok(0)
 }
 
