@@ -4,7 +4,6 @@ use core::ffi::c_int;
 use axerrno::{LinuxError, LinuxResult};
 use axio::PollState;
 use axns::{ResArc, def_resource};
-use axtask::current;
 use flatten_objects::FlattenObjects;
 use spin::RwLock;
 

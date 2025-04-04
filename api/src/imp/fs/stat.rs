@@ -302,9 +302,6 @@ pub struct FsId {
     pub val: [i32; 2],
 }
 
-pub enum FsType {
-    EXT4_SUPER_MAGIC = 0xEF53,
-}
 
 // TODO: [incomplete] Add more file system types
 #[apply(syscall_instrument)]
@@ -315,7 +312,7 @@ pub fn sys_statfs(path: UserConstPtr<c_char>, buf: UserPtr<StatFs>) -> LinuxResu
 
     let stat_fs = StatFs  {
         f_type: 0xEF53,
-        f_bsize: 4096 ,
+        f_bsize: 4096,
         f_blocks: 0x4000_0000 / 512,
         f_bfree: 0x4000_0000 / 1024,
         f_bavail: 0x4000_0000 / 1024,
