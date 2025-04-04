@@ -313,12 +313,19 @@ pub fn sys_statfs(path: UserConstPtr<c_char>, buf: UserPtr<StatFs>) -> LinuxResu
     let path = arceos_posix_api::handle_file_path(-1, Some(path.as_ptr() as _), false)?;
     let buf = buf.get()?;
 
-    let stat_fs = StatFs {
-        f_type: FsType::EXT4_SUPER_MAGIC as _,
-        f_bsize: 4096,
+    let stat_fs = StatFs  {
+        f_type: 0xEF53,
+        f_bsize: 4096 ,
+        f_blocks: 0x4000_0000 / 512,
+        f_bfree: 0x4000_0000 / 1024,
+        f_bavail: 0x4000_0000 / 1024,
+        f_files: 1024,
+        f_ffree: 512,
         f_namelen: 255,
         f_frsize: 4096,
-        ..Default::default()
+        f_flags: 0,
+        f_spare: [0, 0, 0, 0, 0],
+            ..Default::default()
     };
 
     unsafe {
