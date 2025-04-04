@@ -296,3 +296,9 @@ pub fn sys_unlinkat(dir_fd: isize, path: UserConstPtr<c_char>, flags: usize) -> 
 pub fn sys_getcwd(buf: UserPtr<c_char>, size: usize) -> LinuxResult<isize> {
     Ok(arceos_posix_api::sys_getcwd(buf.get_as_null_terminated()?.as_ptr() as _, size) as _)
 }
+
+// TODO: [stub]
+pub fn sys_unlink(_path: UserConstPtr<c_char>) -> LinuxResult<isize> {
+    warn!("[sys_unlink] not implemented yet");
+    Ok(0)
+}

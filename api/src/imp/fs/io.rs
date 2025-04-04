@@ -56,6 +56,5 @@ pub fn sys_pread64(
     offset: isize,
 ) -> LinuxResult<isize> {
     let buf = buf.get_as_bytes(count)?;
-    // Ok(api::sys_pread64(fd, buf, count, offset as off_t) as _)
-    Ok(0)
+    Ok(api::sys_pread64(fd, buf, count, offset as off_t) as _)
 }
