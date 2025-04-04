@@ -2,7 +2,6 @@
 use crate::imp::fd_ops::get_file_like;
 use crate::{File, ctypes};
 use axerrno::{LinuxError, LinuxResult};
-use axfs::api;
 use axio::SeekFrom;
 #[cfg(not(feature = "fd"))]
 use axio::prelude::*;
