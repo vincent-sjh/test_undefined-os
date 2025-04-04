@@ -4,13 +4,14 @@ use core::ffi::c_int;
 use axerrno::{LinuxError, LinuxResult};
 use axio::PollState;
 use axns::{ResArc, def_resource};
+use axtask::current;
 use flatten_objects::FlattenObjects;
 use spin::RwLock;
 
 use crate::ctypes;
 use crate::imp::stdio::{stdin, stdout};
 
-pub const AX_FILE_LIMIT: usize = 42;
+pub const AX_FILE_LIMIT: usize = 1024;
 
 #[allow(dead_code)]
 pub trait FileLike: Send + Sync {
