@@ -101,7 +101,7 @@ pub unsafe fn sys_readv(fd: c_int, iov: *const ctypes::iovec, iocnt: c_int) -> c
     })
 }
 
-/// read from a file descriptor at a given offset
+/// pread64: read from a file descriptor at a given offset
 pub fn sys_pread64(
     fd: c_int,
     buf: *mut c_void,
@@ -109,7 +109,7 @@ pub fn sys_pread64(
     offset: ctypes::off_t,
 ) -> ctypes::ssize_t {
     debug!(
-        "sys_pread64 <= {} {:#x} {} {}",
+        "[sys_pread64] fd={}, buf={:#x}, count={}, offset={}",
         fd, buf as usize, count, offset
     );
     syscall_body!(sys_pread64, {
@@ -135,6 +135,116 @@ pub fn sys_pread64(
                 1 | 2 => Err(LinuxError::EPERM),
                 _ => Err(LinuxError::EBADF),
             }
+        }
+    })
+}
+
+/// sendfile: transfer data between file descriptors
+///
+/// The `sendfile()` system call copies data between one file descriptor (`in_fd`)
+/// and another (`out_fd`). This operation occurs entirely within the kernel,
+/// avoiding unnecessary data copies to user space, making it significantly
+/// faster than `read()` + `write()` for large transfers.
+///
+/// # Arguments
+/// - `out_fd`: Output file descriptor (must be opened for writing).
+///   - Supported types: Regular files, sockets (historical limitation), pipes (Linux 5.12+).
+/// - `in_fd`: Input file descriptor (must be opened for reading).
+///   - Supported types: Regular files, block devices (mmap-able). See restrictions below.
+/// - `offset`:
+///   - If non-null: Specifies the starting offset in `in_fd` to read from.
+///     The kernel updates the pointed value to the next byte after the last read.
+///   - If null: Reads from `in_fd`'s current file offset and updates it automatically.
+/// - `count`: Maximum number of bytes to transfer (actual transferred bytes may be less).
+///
+/// # Returns
+/// - On success: Returns the number of bytes transferred (≥0).
+///   Caller must check and retry if less than `count`.
+/// - On error: Returns `-1` with `errno` set to indicate the error.
+///
+pub fn sys_sendfile(
+    out_fd: c_int,
+    in_fd: c_int,
+    offset: *mut ctypes::off_t,
+    count: usize,
+) -> ctypes::ssize_t {
+    debug!(
+        "[sys_sendfile] out_fd={}, in_fd={}, offset={:#x}, count={}",
+        out_fd, in_fd, offset as usize, count
+    );
+    syscall_body!(sys_sendfile, {
+        #[cfg(feature = "fd")]
+        {
+            let in_file = get_file_like(in_fd)?;
+            if !in_file.poll()?.readable {
+                return Err(LinuxError::EBADF);
+            }
+            let out_file = get_file_like(out_fd)?;
+            if !out_file.poll()?.writable {
+                return Err(LinuxError::EBADF);
+            }
+
+            let mut origin_offset = 0;
+            if !offset.is_null() {
+                match in_file.clone().into_any().downcast_ref::<File>() {
+                    Some(file) => {
+                        let file = file.inner();
+                        // save origin offset
+                        origin_offset = file.lock().seek(SeekFrom::Current(0))?;
+                        // seek to the offset
+                        unsafe {
+                            file.lock().seek(SeekFrom::Start(*offset as _))?;
+                        }
+                    }
+                    None => {
+                        // The in_file must be seekable
+                        return Err(LinuxError::ESPIPE);
+                    }
+                }
+            };
+
+            // transfer file data
+            let mut remaining = count;
+            let mut buffer = [0u8; 4096];
+            while remaining != 0 {
+                let bytes_read = in_file.read(&mut buffer)?;
+                if bytes_read == 0 {
+                    // maybe the low level api will return 0 at EOF?
+                    break; // EOF
+                }
+                let bytes_write = out_file.write(&buffer[0..bytes_read])?;
+                if bytes_write < bytes_read {
+                    remaining -= bytes_write;
+                    // break if partial write encountered
+                    break;
+                } else {
+                    remaining -= bytes_read;
+                }
+            }
+
+            if !offset.is_null() {
+                match in_file.into_any().downcast_ref::<File>() {
+                    Some(file) => {
+                        let file = file.inner();
+                        // save current offset
+                        unsafe {
+                            *offset = file.lock().seek(SeekFrom::Current(0))? as _;
+                        }
+                        // restore the origin offset
+                        file.lock().seek(SeekFrom::Start(origin_offset))?;
+                    }
+                    None => {
+                        // The in_file must be seekable
+                        return Err(LinuxError::ESPIPE);
+                    }
+                }
+            }
+
+            Ok((count - remaining) as ctypes::ssize_t)
+        }
+        #[cfg(not(feature = "fd"))]
+        {
+            warn!("[sys_sendfile] sendfile is not supported on this platform");
         }
     })
 }

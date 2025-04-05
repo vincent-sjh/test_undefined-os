@@ -303,30 +303,30 @@ pub struct FsId {
 }
 
 
-// TODO: [incomplete] Add more file system types
+// TODO: [dummy] return dummy values
 #[apply(syscall_instrument)]
 pub fn sys_statfs(path: UserConstPtr<c_char>, buf: UserPtr<StatFs>) -> LinuxResult<isize> {
     let path = path.get_as_str()?;
     let path = arceos_posix_api::handle_file_path(-1, Some(path.as_ptr() as _), false)?;
-    let buf = buf.get()?;
 
+    // dummy data
     let stat_fs = StatFs  {
-        f_type: 0xEF53,
-        f_bsize: 4096,
+        f_type: 0,
+        f_bsize: 1024,
         f_blocks: 0x4000_0000 / 512,
-        f_bfree: 0x4000_0000 / 1024,
-        f_bavail: 0x4000_0000 / 1024,
-        f_files: 1024,
-        f_ffree: 512,
+        f_bfree: 1,
+        f_bavail: 1,
+        f_files: 1,
+        f_ffree: 1,
         f_namelen: 255,
-        f_frsize: 4096,
+        f_frsize: 0x1000,
         f_flags: 0,
         f_spare: [0, 0, 0, 0, 0],
             ..Default::default()
     };
 
     unsafe {
-        buf.write(stat_fs);
+        buf.get()?.write(stat_fs);
     }
     Ok(0)
 }

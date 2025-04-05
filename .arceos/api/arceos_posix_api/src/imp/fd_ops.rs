@@ -88,16 +88,15 @@ pub fn sys_dup2(old_fd: c_int, new_fd: c_int) -> c_int {
     syscall_body!(sys_dup2, {
         if old_fd == new_fd {
             let r = sys_fcntl(old_fd, ctypes::F_GETFD as _, 0);
-            if r >= 0 {
-                return Ok(old_fd);
-            } else {
-                return Ok(r);
-            }
+            return if r >= 0 { Ok(old_fd) } else { Ok(r) };
         }
         if new_fd as usize >= AX_FILE_LIMIT {
             return Err(LinuxError::EBADF);
         }
 
+        // close the new_fd if it is already opened
+        // ignore any error during the close
+        close_file_like(new_fd).unwrap_or(());
         let f = get_file_like(old_fd)?;
         FD_TABLE
             .write()

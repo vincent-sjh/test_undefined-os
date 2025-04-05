@@ -164,27 +164,46 @@ pub fn sys_prlimit64(
     new_limit: UserConstPtr<Rlimit>,
     old_limit: UserPtr<Rlimit>,
 ) -> LinuxResult<isize> {
-    if pid != 0 {
-        return Err(LinuxError::ESRCH);
-    }
-    if resource != RLIMIT_NOFILE {
-        return Err(LinuxError::EINVAL);
-    }
+
     let curr = current();
     let task = curr.task_ext();
-    let old_num:Rlimit = task.get_rlimit_nofile();
-    let new_limit = new_limit.nullable(UserConstPtr::get)?;
-    if let Some(new_limit) = new_limit {
-        unsafe { task.set_rlimit_nofile(*new_limit); }
-    }
     
-    let old_limit = old_limit.nullable(UserPtr::get)?;
-    if let Some(old_limit) = old_limit {
-        unsafe {
-            *old_limit = old_num;
+    if resource == RLIMIT_NOFILE {
+    
+    }
+    match resource {
+        RLIMIT_NOFILE => {
+            let old_num: Rlimit = task.get_rlimit_nofile();
+            let new_limit = new_limit.nullable(UserConstPtr::get)?;
+            if let Some(new_limit) = new_limit {
+                unsafe { task.set_rlimit_nofile(*new_limit); }
+            }
+    
+            let old_limit = old_limit.nullable(UserPtr::get)?;
+            if let Some(old_limit) = old_limit {
+                unsafe {
+                    *old_limit = old_num;
+                }
+            }
+        },
+        RLIMIT_STACK => {
+            let old_num: Rlimit = task.get_rlimit_stack();
+            let new_limit = new_limit.nullable(UserConstPtr::get)?;
+            if let Some(new_limit) = new_limit {
+                unsafe { task.set_rlimit_stack(*new_limit); }
+            }
+    
+            let old_limit = old_limit.nullable(UserPtr::get)?;
+            if let Some(old_limit) = old_limit {
+                unsafe {
+                    *old_limit = old_num;
+                }
+            }
+        },
+        _ => {
+            
         }
     }
-
     Ok(0)
 }
 

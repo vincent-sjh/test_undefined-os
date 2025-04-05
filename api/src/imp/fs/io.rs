@@ -58,3 +58,18 @@ pub fn sys_pread64(
     let buf = buf.get_as_bytes(count)?;
     Ok(api::sys_pread64(fd, buf, count, offset as off_t) as _)
 }
+
+pub fn sys_sendfile(
+    out_fd: i32,
+    in_fd: i32,
+    offset: UserPtr<off_t>,
+    count: usize,
+) -> LinuxResult<isize> {
+    let offset = offset.nullable(UserPtr::get)?;
+    Ok(api::sys_sendfile(
+        out_fd,
+        in_fd,
+        offset.unwrap_or(core::ptr::null_mut()),
+        count,
+    ) as _)
+}

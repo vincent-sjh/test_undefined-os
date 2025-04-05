@@ -28,13 +28,21 @@ use crate::{
     ctypes::{CloneFlags, TimeStat, WaitStatus},
     mm::copy_from_kernel,
 };
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct Rlimit{
-    pub rlim_cur: u32,
+    pub rlim_cur: u32 ,
     pub rlim_max: u32,
 }
 
+impl Default for Rlimit {
+    fn default() -> Self {
+        Rlimit {
+            rlim_cur: 65535, // 自定义初始值
+            rlim_max: 65535, // 自定义初始值
+        }
+    }
+}
 
 
 /// Task extended data for the monolithic kernel.
@@ -65,19 +73,19 @@ pub struct TaskExt {
     pub heap_top: AtomicU64,
     // The resource limit
     // RLIMIT_AS：进程的最大虚拟内存大小（字节）。
-    pub rlimit_as: Rlimit,
+    pub rlimit_as: Cell<Rlimit>,
     // RLIMIT_CORE：核心转储文件（core dump）的最大大小。
-    pub rlimit_asc: Rlimit,
+    pub rlimit_asc: Cell<Rlimit>,
     // RLIMIT_CPU：CPU 时间限制（秒）。
-    pub rlimit_cpu: Rlimit,
+    pub rlimit_cpu: Cell<Rlimit>,
     // RLIMIT_DATA：数据段的最大大小。
-    pub rlimit_data: Rlimit,
+    pub rlimit_data: Cell<Rlimit>,
     // RLIMIT_FSIZE：创建文件的最大大小。
-    pub rlimit_fsize: Rlimit,
+    pub rlimit_fsize: Cell<Rlimit>,
     // RLIMIT_NOFILE：打开文件描述符的最大数量。
     pub rlimit_nofile: Cell<Rlimit>,
     // RLIMIT_STACK：栈的最大大小。
-    pub rlimit_stack: Rlimit,
+    pub rlimit_stack: Cell<Rlimit>,
 
 }
 
@@ -99,12 +107,12 @@ impl TaskExt {
             time: TimeStat::new().into(),
             heap_bottom: AtomicU64::new(heap_bottom),
             heap_top: AtomicU64::new(heap_bottom),
-            rlimit_as: Rlimit::default(),
-            rlimit_asc: Rlimit::default(),
-            rlimit_cpu: Rlimit::default(),
-            rlimit_data: Rlimit::default(),
-            rlimit_fsize: Rlimit::default(),
-            rlimit_stack: Rlimit::default(),
+            rlimit_as: Cell::new(Rlimit::default()),
+            rlimit_asc: Cell::new(Rlimit::default()),
+            rlimit_cpu: Cell::new(Rlimit::default()),
+            rlimit_data: Cell::new(Rlimit::default()),
+            rlimit_fsize: Cell::new(Rlimit::default()),
+            rlimit_stack: Cell::new(Rlimit::default()),
             rlimit_nofile: Cell::new(Rlimit::default()),
         }
     }
@@ -195,9 +203,39 @@ impl TaskExt {
     pub fn set_rlimit_nofile(&self, new_value: Rlimit) {
         self.rlimit_nofile.set(new_value);
     }
-
     pub fn get_rlimit_nofile(&self) -> Rlimit {
         self.rlimit_nofile.get()
+    }
+    
+    pub fn set_rlimit_stack(&self, new_value: Rlimit) {
+        self.rlimit_stack.set(new_value);
+    }
+    pub fn get_rlimit_stack(&self) -> Rlimit {
+        self.rlimit_stack.get()
+    }
+    pub fn set_rlimit_cpu(&self, new_value: Rlimit) {
+        self.rlimit_cpu.set(new_value);
+    }
+    pub fn get_rlimit_cpu(&self) -> Rlimit {
+        self.rlimit_cpu.get()
+    }
+    pub fn set_rlimit_data(&self, new_value: Rlimit) {
+        self.rlimit_data.set(new_value);
+    }
+    pub fn get_rlimit_data(&self) -> Rlimit {
+        self.rlimit_data.get()
+    }
+    pub fn set_rlimit_fsize(&self, new_value: Rlimit) {
+        self.rlimit_fsize.set(new_value);
+    }
+    pub fn get_rlimit_fsize(&self) -> Rlimit {
+        self.rlimit_fsize.get()
+    }
+    pub fn set_rlimit_as(&self, new_value: Rlimit) {
+        self.rlimit_as.set(new_value);
+    }
+    pub fn get_rlimit_as(&self) -> Rlimit {
+        self.rlimit_as.get()
     }
     
     fn ns_init_new(&self) {
